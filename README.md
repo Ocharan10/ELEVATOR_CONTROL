@@ -28,58 +28,74 @@ STEP:11 On the board, by giving required input, the LEDs starts to glow light, i
 # STATE DIAGRAM:
 ![image](https://github.com/RESMIRNAIR/ELEVATOR_CONTROL/assets/154305926/b42a1942-752f-4787-967c-b9c13ab3e763)
 # VERILOG CODE:
-module elevator_control(
-    input clk,            // Clock input
-    input reset,          // Reset input
-    input up_button,      // Up button input
-    input down_button,    // Down button input
-    input [3:0] current_floor,  // Current floor input (4 floors in total)
-    output reg [3:0] next_floor // Next floor output
-);
+module LiftC(clk,reset,req_floor,stop,door,Up,Down,y);
 
-// Define states for the elevator controller
-parameter IDLE = 2'b00;
-parameter MOVE_UP = 2'b01;
-parameter MOVE_DOWN = 2'b10;
+input clk,reset;
 
-reg [1:0] state;    // State register
+input [6:0] req_floor;
+output reg[1:0] door;
+output reg[1:0] Up;
+output reg[1:0] Down;
+output reg[1:0] stop;
 
-always @(posedge clk or posedge reset) begin
-    if (reset) begin
-        state <= IDLE;
-        next_floor <= 4'b0000;  // Initial floor
-    end
-    else begin
-        case (state)
-            IDLE: begin
-                if (up_button && current_floor < 4'b0111) begin
-                    state <= MOVE_UP;
-                    next_floor <= current_floor + 1;
-                end
-                else if (down_button && current_floor > 4'b0000) begin
-                    state <= MOVE_DOWN;
-                    next_floor <= current_floor - 1;
-                end
-            end
-            MOVE_UP: begin
-                if (current_floor < 4'b0111)
-                    next_floor <= next_floor + 1;
-                else
-                    state <= IDLE;
-            end
-            MOVE_DOWN: begin
-                if (current_floor > 4'b0000)
-                    next_floor <= next_floor - 1;
-                else
-                    state <= IDLE;
-            end
-            default: state <= IDLE;
-        endcase
-    end
+output [6:0] y;
+reg [6:0] cf ;
+
+always @ (posedge clk)
+begin
+
+if(reset)
+begin
+cf=6'd0;
+stop=6'd1;
+door = 1'd1;
+Up=1'd0;
+Down=1'd0;
+end
+else
+begin
+if(req_floor < 6'd61)
+begin
+
+if(req_floor < cf )
+begin
+cf=cf-1;
+door=1'd0;
+stop=6'd0;
+Up=1'd0;
+Down=1'd1;
 end
 
-endmodule
 
+else if (req_floor > cf)
+begin
+cf = cf+1;
+door=1'd0;
+stop=6'd0;
+Up=1'd1;
+Down=1'd0;
+end
+
+else if(req_floor == cf )
+begin
+cf = req_floor;
+door=1'd1;
+stop=6'd1;
+Up=1'd0;
+Down=1'd0;
+end
+end
+
+
+end
+
+
+end
+
+
+assign y = cf;
+
+endmodule
 # OUTPUT:
 ![image](https://github.com/RESMIRNAIR/ELEVATOR_CONTROL/assets/154305926/6379ab0d-b73f-4740-bdda-45263b28f120)
 # RESULT:
