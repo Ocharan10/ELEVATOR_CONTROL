@@ -1,102 +1,330 @@
 # ELEVATOR_CONTROL
-# AIM
-To design and simulate elevator control using vivado.
-# Apparatus Required:
-Pc with vivado software.
-# PROCEDURE:
-STEP:1 Start the Xilinx navigator, Select and Name the New project.
+
+# Aim:
+To stimulate and synthesis  ELEVATOR_CONTROL using Vivado
+
+# Apparatus Required
+vivado 2023.2 software.
+
+# Procedure
+
+STEP:1 Start the vivado software, Select and Name the New project.
 
 STEP:2 Select the device family, device, package and speed.
 
 STEP:3 Select new source in the New Project and select Verilog Module as the Source type.
 
-STEP:4 Type the File Name and Click Next and then finish button. Type the code and save it.
+STEP:4 Type the File Name and module name and Click Next and then finish button. Type the code and save it.
 
-STEP:5 Select the Behavioral Simulation in the Source Window and click the check syntax.
+STEP:5 Select the run simulation and then run Behavioral Simulation in the Source Window and click the check syntax.
 
 STEP:6 Click the simulation to simulate the program and give the inputs and verify the outputs as per the truth table.
 
-STEP:7 Select the Implementation in the Sources Window and select the required file in the Processes Window.
+STEP:7 compare the output with truth table. image
 
-STEP:8 Select Check Syntax from the Synthesize XST Process. Double Click in the FloorplanArea/IO/Logic-Post Synthesis process in the User Constraints process group. UCF(User constraint File) is obtained.
-
-STEP:9 In the Design Object List Window, enter the pin location for each pin in the Loc column Select save from the File menu.
-
-STEP:10 Double click on the Implement Design and double click on the Generate Programming File to create a bitstream of the design.(.v) file is converted into .bit file here.
-
-STEP:11 On the board, by giving required input, the LEDs starts to glow light, indicating the output.
-# STATE DIAGRAM:
+# STATE DIAGRAM
 ![image](https://github.com/RESMIRNAIR/ELEVATOR_CONTROL/assets/154305926/b42a1942-752f-4787-967c-b9c13ab3e763)
-# VERILOG CODE:
-module LiftC(clk,reset,req_floor,stop,door,Up,Down,y);
 
-input clk,reset;
-
-input [6:0] req_floor;
-output reg[1:0] door;
-output reg[1:0] Up;
-output reg[1:0] Down;
-output reg[1:0] stop;
-
-output [6:0] y;
-reg [6:0] cf ;
-
-always @ (posedge clk)
-begin
-
-if(reset)
-begin
-cf=6'd0;
-stop=6'd1;
-door = 1'd1;
-Up=1'd0;
-Down=1'd0;
-end
-else
-begin
-if(req_floor < 6'd61)
-begin
-
-if(req_floor < cf )
-begin
-cf=cf-1;
-door=1'd0;
-stop=6'd0;
-Up=1'd0;
-Down=1'd1;
-end
+# program
 
 
-else if (req_floor > cf)
-begin
-cf = cf+1;
-door=1'd0;
-stop=6'd0;
-Up=1'd1;
-Down=1'd0;
-end
-
-else if(req_floor == cf )
-begin
-cf = req_floor;
-door=1'd1;
-stop=6'd1;
-Up=1'd0;
-Down=1'd0;
-end
-end
+module Lift8(clk, reset, req_floor, idle, door, Up, Down, current_floor, requests, max_request, min_request, emergency_stop);
 
 
-end
+  input clk, reset, emergency_stop;
+  
+  input logic [2:0] req_floor;      // 3-bit input for 8 floors (0 to 7)
+  
+  output logic [1:0] door;
+  
+  output logic [2:0] max_request;
+  
+  output logic [2:0] min_request;
+  
+  output logic [1:0] Up;
+  
+  output logic [1:0] Down;
+  
+  output logic [1:0] idle;
+  
+  output logic [2:0] current_floor;
+  
+  output logic [7:0] requests;
+  
 
+  logic door_timer;
+  
+  logic emergency_stopped;
+  
+  logic flag=0;
+  
 
-end
+  // Update requests when a new floor is requested
+  
+  always @(req_floor)
+  
+  begin
+  
+    requests[req_floor] = 1;
+    
+  // Update max_request and min_request based on requested floors
+  
+    if (max_request < req_floor)
+    
+    begin
+    
+      max_request = req_floor;
+      
+    end
+    
+    
+    if (min_request > req_floor)
+    
+    begin
+    
+      min_request = req_floor;
+      
+    end
+    
+    
+      // Update max_request and min_request based on current floor
+      
+    
+    if (requests[max_request] == 0 && req_floor > current_floor)
+    
+    begin
+    
+      max_request = req_floor;
+      
+    end
+    
+    
+    if (requests[min_request] == 0 && req_floor < current_floor)
+    
+    begin
+    
+      min_request = req_floor;
+      
+    end
+    
+    
+  end
+  
 
+  // Check and update lift behavior based on current floor
+  
+  
+  always @(current_floor )
+  
+  
+  begin
+  
+  
+    if (requests[current_floor] == 1)
+    
+    
+    begin
+    
+    
+      idle = 1;
+      
+      
+      door = 1;
+      
+      
+      requests[current_floor] = 0;
+      
+      
+      door_timer = 1; // Start the door timer when opening
+      
+      
+    end
+    
+    
+  end
+  
+  
 
-assign y = cf;
+  // State machine for lift control
+  
+  always @(posedge clk )
+  
 
+  begin   
+  
+    if (door_timer == 1)
+    
+    begin
+    
+      door <= 0; // Close the door after the one clock expires
+      
+      //$display("%h", current_floor);
+      
+    end
+    
+    if (reset)
+    
+    begin
+    
+      // Reset lift to initial state
+      
+      flag=0;
+      
+      current_floor <= 0;
+      
+      idle <= 0;
+      
+      door <= 0; // door open
+      
+      Up <= 1;   // going up
+      
+      Down <= 0; // not going down
+      
+      max_request <= 0;
+      
+      min_request <= 7;
+      
+      requests <= 0;
+      
+      emergency_stopped <= 0; // Initialize emergency stop state
+      
+    end
+    
+    else if (requests == 0 && !reset)
+    
+    begin
+    
+      // Stay on the current floor if no requests
+      
+      current_floor <= current_floor;
+      
+      emergency_stopped <= 0; // Clear emergency stop when not moving
+      
+    end
+    
+    // emergency
+    
+    else if (emergency_stop)
+    
+    begin
+    
+      // Emergency stop button is turned on
+      
+      idle <= 1;
+      
+      flag <=1;
+      
+      emergency_stopped <= 1; // Set emergency stop state
+      
+    end
+    
+    else if (emergency_stopped && emergency_stop)
+    
+    begin
+    
+      // Remain stopped until the emergency stop button is reset
+      
+      current_floor <= current_floor;
+      
+      door <= 0; // Keep the door closed during an emergency stop
+      
+    end
+    
+    // emergency reset
+    
+    else if (!emergency_stop && flag)
+    
+    begin
+    
+      // Emergency stop button is turned off
+      
+      emergency_stopped <= 0; // Set emergency stop state
+      
+      flag <=0;
+      
+    end
+    
+    else
+    
+    begin
+    
+      // Normal operation when not in emergency stop
+      
+      if (max_request <= 7)
+      
+      begin
+      
+        if (min_request < current_floor && Down == 1)
+        
+        begin
+        
+          // Move down one floor
+          
+          current_floor <= current_floor - 1;
+          
+          door <= 0;
+          
+          idle <= 0;
+          
+        end
+        
+        else if (max_request > current_floor && Up == 1)
+        
+        begin
+        
+          // Move up one floor
+          
+          current_floor <= current_floor + 1;
+          
+          door <= 0;
+          
+          idle <= 0;
+          
+        end
+        
+        else if (req_floor == current_floor)
+        
+        begin
+        
+             // Open door and handle request
+             
+            door <= 1;
+            
+            idle <= 1;
+            
+        end
+        
+        else if (max_request == current_floor)
+        
+        begin
+        
+          Up <= 0;
+          
+          Down <= 1;
+          
+        end
+        
+        else if (min_request == current_floor)
+        
+        begin
+        
+          Up <= 1;
+          
+          Down <= 0;
+          
+        end
+        
+      end
+      
+    end
+    
+  end
+  
 endmodule
-# OUTPUT:
+
+# output
 ![image](https://github.com/RESMIRNAIR/ELEVATOR_CONTROL/assets/154305926/6379ab0d-b73f-4740-bdda-45263b28f120)
-# RESULT:
-Hence Elevator control is verified.
+# Result
+Thus the verilog program for  ELEVATOR_CONTROL has been simulated and verified successfully.
+
+
