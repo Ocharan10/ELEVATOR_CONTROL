@@ -8,7 +8,7 @@ vivado 2023.2 software.
 
 # Procedure
 
-STEP:1 Start the vivado software, Select and Name the New project.
+STEP:1 Start the vivado software, Select and Name the New project
 
 STEP:2 Select the device family, device, package and speed.
 
